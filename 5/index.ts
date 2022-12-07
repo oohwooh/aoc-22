@@ -12,8 +12,6 @@ interface Crate {
 interface Cargo {
     stacks: Crate[][]
 }
-
-
 function line_to_crates(line: string) {
     if(line.includes('[')) {
         return line.match(/.{1,4}/g).map((crate): Crate | undefined => {
