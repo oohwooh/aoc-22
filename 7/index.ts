@@ -6,19 +6,6 @@ const input = fs.readFileSync('./7/input.txt').toString().split('\n')
 test.pop()
 input.pop()
 
-
-// interface Directory {
-//     parent: Directory | null
-//     children: Array<Directory | File>
-//     name: string
-// }
-
-// interface File {
-//     parent: Directory
-//     name: string
-//     size: number
-// }
-
 interface Directory {
     [key: string]: Directory | FileGood
 }
@@ -35,14 +22,11 @@ function part1(input: string[]): any {
 
         let sum = 0
         for (let name of Object.keys(directory)) {
-            // console.log(JSON.stringify(directory[name]))
-            // const value = directory[name][Object.keys(directory[name])[0]]
-            if (typeof directory[name] == "number") {
-                // @ts-ignore
-                sum += directory[name]
+            const value = directory[name]
+            if (typeof value == "number") {
+                sum += value
             } else {
-                // @ts-ignore
-                sum += calc_directory_size(directory[name])
+                sum += calc_directory_size(<Directory>directory[name])
             }
         }
         sums.push(sum)
@@ -72,9 +56,7 @@ function part1(input: string[]): any {
 
         }
     })
-    // @ts-ignore
-    calc_directory_size(filesystem["/"])
-    console.log(sums)
+    calc_directory_size(<Directory>filesystem["/"])
     return sums.filter((s) => s <= 100_000).reduce((p, v) => p + v, 0)
 }
 
@@ -84,14 +66,11 @@ function part2(input: string[]): any {
 
         let sum = 0
         for (let name of Object.keys(directory)) {
-            // console.log(JSON.stringify(directory[name]))
-            // const value = directory[name][Object.keys(directory[name])[0]]
-            if (typeof directory[name] == "number") {
-                // @ts-ignore
-                sum += directory[name]
+            const value = directory[name]
+            if (typeof value == "number") {
+                sum += value
             } else {
-                // @ts-ignore
-                sum += calc_directory_size(directory[name])
+                sum += calc_directory_size(<Directory>value)
             }
         }
         sums.push(sum)
@@ -121,8 +100,7 @@ function part2(input: string[]): any {
 
         }
     })
-    // @ts-ignore
-    calc_directory_size(filesystem["/"])
+    calc_directory_size(<Directory>filesystem["/"])
     const NEEDED_SPACE = 30000000
     const TOTAL_SPACE = 70000000
     const SPACE_REMAINING = TOTAL_SPACE - sums[sums.length -1]
