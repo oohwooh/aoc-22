@@ -8,14 +8,14 @@
     ],
     "module": "CommonJS",
     "sourceMap": true,
-    "rootDir": "src",
+//    "rootDir": "src",
     "outDir": "dist"
   },
   "exclude": [
     "node_modules"
   ],
   "include": [
-    "generate"
+    "*/*.ts"
   ],
   "ts-node": {
     //    "esm": true,

@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "day": "ts-node"
+  },
   "dependencies": {
     "dot-object": "^2.1.4",
     "dotenv": "^16.0.3",
