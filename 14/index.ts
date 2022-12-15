@@ -105,20 +105,19 @@ function part2(input: string[]): any {
     blocked = [...new Set(blocked)]
 
     while (!isBlocked({x: 500, y:0})) {
-        // console.log(blocked.length)
         sand = {x: 500, y:0}
-        // console.log(count)
         count++;
         const can = canMove(sand)
         while(canMove(sand)) {
             sand.y++
-            if (sand.y >= abyss) return count -1
+            if (sand.y >= abyss) return count
             if(isBlocked(sand)) sand.x--
             if(isBlocked(sand)) sand.x += 2
         }
         blocked.unshift(JSON.stringify(sand))
+        console.log(count)
     }
-    return count -1
+    return count
 }
 
 
