@@ -52,7 +52,7 @@ function part2(input: string[]): any {
         dropletsList.push({ x, y, z })
     })
     function isAirPocket([x, y, z]: number[], exclude: number[][] = []): boolean {
-        if(x >= maxX || y >= maxY || z >= maxZ || x <= minX || y <= minY || z <= minZ ) return false
+        if(x >= maxX || y >= maxY || z >= maxZ || x <= minX || y <= minY || z <= minZ) return false
         const nonExcludedNeighbors = exclude.length > 0? cubeNeighbors.filter(n => exclude.map(e => e.toString()).includes([n[0] + x, n[1] + y, n[2] + z].toString())) : cubeNeighbors
         if(nonExcludedNeighbors.length == 0) return false
         const lavaNeighbors = nonExcludedNeighbors.filter(n => {
@@ -76,10 +76,48 @@ function part2(input: string[]): any {
             return !isAirPocket(n, [...exclude, [x, y, z]])
         }).includes(true)
     }
-
+    function doesHitLavaInDirection([x, y, z]: number[], [dx, dy, dz]: number[]) {
+        const [ox, oy, oz] = [x,y,z]
+        while(!(x > maxX || y > maxY || z > maxZ || x < minX || y < minY || z < minZ)) {
+            x += dx
+            y += dy
+            z += dz
+            try {
+                if(dropletsGrid[x][y][z] == true && isAirPocket([x-dx,y-dy,z-dz])) {
+                    if(!allAirPockets.includes([x-dx,y-dy,z-dz].toString())) {
+                        allAirPockets.push([x-dx,y-dy,z-dz].toString())
+                    }
+                    return true
+                }
+            } catch {}
+        }
+        return false
+    }
+    function doesHitWrongAirPocketInDirection([x, y, z]: number[], [dx, dy, dz]: number[]) {
+        while(!(x > maxX || y > maxY || z > maxZ || x < minX || y < minY || z < minZ)) {
+            x += dx
+            y += dy
+            z += dz
+            try {
+                if(dropletsGrid[x][y][z] == true) {
+                    return false
+                }
+                if(wrongAirPockets.includes([x,y,z].toString())) {
+                    // if(!allAirPockets.includes([x-dx,y-dy,z-dz].toString())) {
+                    //     allAirPockets.push([x-dx,y-dy,z-dz].toString())
+                    // }
+                    return true
+                }
+            } catch {}
+        }
+        return false
+    }
+    // console.log(dropletsList.map(d => '[' + [d.x, d.y, d.z].join(',') + '],').join(''))
     dropletsList.forEach(d => {
         // console.log(`<point>point="${d.x}, ${d.y}, ${d.z}" color="rgb(255,0,0)" size="10" visible="true"</point>`)
     })
+    const allAirPockets = []
+    const countedFaces = []
     dropletsList.forEach(droplet => {
         const airNeighbors = cubeNeighbors.filter(n => {
             try {
@@ -89,21 +127,63 @@ function part2(input: string[]): any {
                 return true
             }
         })
-        let tempCount = airNeighbors.length
-        const allAirPockets = []
-        airNeighbors.forEach((an) => {
-            const [x, y, z] = [an[0] + droplet.x, an[1] + droplet.y, an[2] + droplet.z]
-            if(isAirPocket([x, y, z])) {
-                tempCount--
-                if(!allAirPockets.includes([x, y, z].toString())) {
-                    allAirPockets.push([x,y,z].toString())
-                    console.log(`<point>point="${x}, ${y}, ${z}" color="rgb(0,255,0)" size="10" visible="true"</point>`)
-                }
-                // console.log([x, y, z], 'is an air pocket')
+        surfaceArea += airNeighbors.filter((an) => {
+            if(!doesHitLavaInDirection([droplet.x, droplet.y, droplet.z], an)) {
+                countedFaces.push([droplet.x, droplet.y, droplet.z, an[0], an[1], an[2]].toString())
+                return true
             }
-        })
-        surfaceArea += tempCount
+        }).length
+        // surfaceArea += tempCount
     })
+    console.log(surfaceArea)
+
+    const wrongAirPockets = []
+    allAirPockets.forEach(pocket => {
+        const [x, y, z] = pocket.split(',').map(n => parseInt(n))
+        if(cubeNeighbors.filter(n => doesHitLavaInDirection([x, y, z], n)).length != 6) {
+            // this has been miscalculated as an air pocket
+            // console.log(x,y,z)
+            if(!wrongAirPockets.includes([x,y,z].toString())) wrongAirPockets.push([x,y,z].toString())
+            surfaceArea += cubeNeighbors.filter(n => {
+                try {
+                    if(dropletsGrid[n[0] + x][n[1] + y][n[2] + z] == true) {
+                        countedFaces.push([x,y,z, n[0], n[1], n[2]].toString())
+                         return true
+                    }
+                }
+                catch {
+                    return false
+                }
+            }).length
+        }
+    })
+    console.log(surfaceArea)
+    allAirPockets.filter(p => !wrongAirPockets.includes(p)).forEach(pocket => {
+        const [x, y, z] = pocket.split(',').map(n => parseInt(n))
+        if(cubeNeighbors.filter(n => doesHitWrongAirPocketInDirection([x, y, z], n)).length != 0) {
+            // this has been miscalculated as an air pocket
+            // console.log(x,y,z)
+            // if(!wrongAirPockets.includes([x,y,z].toString())) wrongAirPockets.push([x,y,z].toString())
+            surfaceArea += cubeNeighbors.filter(n => {
+                try {
+                    if(dropletsGrid[n[0] + x][n[1] + y][n[2] + z] == true) {
+                        countedFaces.push([x,y,z, n[0], n[1], n[2]].toString())
+                        return true
+                    }
+                }
+                catch {
+                    return false
+                }
+            }).length
+        }
+    })
+    // console.log(dropletsList.map(d => '[' + d  + '],').join(''))
+    // console.log('')
+    // console.log(allAirPockets.map(d => '[' + d  + '],').join(''))
+    // console.log('')
+    // console.log(wrongAirPockets.map(d => '[' + d  + '],').join(''))
+    console.log(countedFaces)
+    console.log([...new Set(countedFaces)].length)
     return surfaceArea
 }
 
@@ -113,5 +193,5 @@ console.log(`Test: ${part1(test)}`)
 console.log(`Input: ${part1(input)}`)
 
 console.log('Part 2:')
-// console.log(`Test: ${part2(test)}`)
-console.log(`Input: ${part2(input)}`)
+console.log(`Test: ${part2(test)}`)
+// console.log(`Input: ${part2(input)}`)
