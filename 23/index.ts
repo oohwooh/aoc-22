@@ -11,7 +11,7 @@ interface Elf {
 }
 
 interface Movement {
-    elfIdx: number
+    elfKey: string
     newX: number
     newY: number
 }
@@ -27,29 +27,35 @@ const DIRECTIONS = {
     SW: { x: -1, y: 1 },
 }
 
-// const dc = {...DIRECTIONS}
-// Object.keys(dc).forEach(d => {
-//     Object.keys(dc).filter(i => i != d).forEach(j => {
-//         DIRECTIONS[d+j] = { x: DIRECTIONS[d].x + DIRECTIONS[j].x, y: DIRECTIONS[d].y + DIRECTIONS[j].y }
-//     })
-// })
-
-function printBoard(elves: Elf[]) {
-    const width = Math.max(...elves.map(e => e.y)) - Math.min(...elves.map(e => e.y))
-    const height = Math.max(...elves.map(e => e.x)) - Math.min(...elves.map(e => e.x))
-    // console.log(elves)
-    // console.log(width, height)
-    for (let y = Math.min(...elves.map(e => e.y)); y <= Math.max(...elves.map(e => e.y)) ; y++) {
+function printBoard(elves: ElfList) {
+    for (let y = Math.min(...Object.keys(elves).map(e => elves[e].y)); y <= Math.max(...Object.keys(elves).map(e => elves[e].y)); y++) {
         let row = ''
-        for (let x = Math.min(...elves.map(e => e.x)); x <= Math.max(...elves.map(e => e.x)) ; x++) {
-            row += elves.findIndex(e => e.x == x && e.y == y) == -1? '.' : '#'
+        for (let x = Math.min(...Object.keys(elves).map(e => elves[e].x)); x <= Math.max(...Object.keys(elves).map(e => elves[e].x)); x++) {
+            row += elves[[x, y].toString()] == undefined? '.' : '#'
         }
         console.debug(row)
     }
     console.log('')
 }
+
+type ElfList = {[key: string]: Elf}
+
+function doesElfHaveNeighbors(elves: ElfList, elf: Elf) {
+    const neighborPositions = Object.keys(DIRECTIONS).map(d => {
+        return {
+            x: DIRECTIONS[d].x + elf.x,
+            y: DIRECTIONS[d].y + elf.y
+        }
+    })
+    for (const p of neighborPositions) {
+        if(elves[[p.x, p.y].toString()] != undefined) return true
+    }
+    return false
+}
+
 function part1(input: string[]): any {
-    const elves: Elf[] = []
+    const start = performance.now()
+    const elves: ElfList = {}
     const checks = [
         [DIRECTIONS.N, DIRECTIONS.NE, DIRECTIONS.NW],
         [DIRECTIONS.S, DIRECTIONS.SE, DIRECTIONS.SW],
@@ -58,72 +64,63 @@ function part1(input: string[]): any {
     ]
     input.forEach((row, y) => {
         row.split('').forEach((col, x) => {
-            if(col == '#') elves.push({x, y})
+            if(col == '#') elves[[x, y].toString()] = {x, y}
         })
     })
-    printBoard(elves)
-
+    const timesPerStep = []
     for (let i = 0; i < 10; i++) {
+        const stepStart = performance.now()
         const proposedMovements: Movement[] = []
-        elves.forEach((elf, idx) => {
-            const neighborPositions = Object.keys(DIRECTIONS).map(d => {
-                return {
-                    x: DIRECTIONS[d].x + elf.x,
-                    y: DIRECTIONS[d].y + elf.y
-                }
-            })
-            const neighborElves = elves.filter(e => {
-                return neighborPositions.filter(p => {
-                    return e.x == p.x && e.y == p.y
-                }).length > 0
-            })
-            if(neighborElves.length > 0) {
-                checks.forEach(c => {
-                    const checkPositions = c.map(d => {
-                        return {
-                            x: d.x + elf.x,
-                            y: d.y + elf.y
-                        }
-                    })
-                    const checkElves = elves.filter(e => {
-                        return checkPositions.filter(p => {
-                            return e.x == p.x && e.y == p.y
-                        }).length > 0
-                    })
-                    if(checkElves.length == 0 && proposedMovements.findIndex(j => j.elfIdx == idx) == -1) {
-                        proposedMovements.push(
-                            {
-                                elfIdx: idx,
-                                newX: c[0].x + elf.x,
-                                newY: c[0].y + elf.y
-                            }
-                        )
-                    }
-                })
+        Object.keys(elves).forEach((elfKey, idx) => {
+            const elf = elves[elfKey]
+             {
+                 if(doesElfHaveNeighbors(elves, elf)) {
+                     checks.forEach(c => {
+                         const checkPositions = c.map(d => {
+                             return {
+                                 x: d.x + elf.x,
+                                 y: d.y + elf.y
+                             }
+                         })
+                         const checkPass = checkPositions.filter(p => {
+                             return elves[[p.x, p.y].toString()] != undefined
+                         }).length == 0
+                         if(checkPass && proposedMovements.findIndex(j => j.elfKey == elfKey) == -1) {
+                             proposedMovements.push(
+                                 {
+                                     elfKey,
+                                     newX: c[0].x + elf.x,
+                                     newY: c[0].y + elf.y
+                                 }
+                             )
+                         }
+                     })
+                 }
             }
         })
         const nonDuplicateMovements = proposedMovements.filter(m => {
             return proposedMovements.filter(o => m.newY == o.newY && m.newX == o.newX).length == 1
         })
         nonDuplicateMovements.forEach(m => {
-            elves[m.elfIdx].x = m.newX
-            elves[m.elfIdx].y = m.newY
+            delete elves[m.elfKey]
+            elves[[m.newX, m.newY].toString()] = { x: m.newX, y: m.newY }
         })
         checks.push(checks.shift())
-        console.log(`== End of Round ${i + 1} ==`)
-        // printBoard(elves)
+        timesPerStep.push(performance.now() - stepStart)
     }
     let emptyGroundTiles = 0
-    for (let y = Math.min(...elves.map(e => e.y)); y <= Math.max(...elves.map(e => e.y)); y++) {
-        for (let x = Math.min(...elves.map(e => e.x)); x <= Math.max(...elves.map(e => e.x)); x++) {
-            emptyGroundTiles += elves.findIndex(e => e.x == x && e.y == y) == -1? 1 : 0
+    for (let y = Math.min(...Object.keys(elves).map(e => elves[e].y)); y <= Math.max(...Object.keys(elves).map(e => elves[e].y)); y++) {
+        for (let x = Math.min(...Object.keys(elves).map(e => elves[e].x)); x <= Math.max(...Object.keys(elves).map(e => elves[e].x)); x++) {
+            emptyGroundTiles += elves[[x, y].toString()] == undefined? 1 : 0
         }
     }
+    console.log(`Calculation took ${((performance.now() - start) / 1000).toFixed(2)} seconds. Avg step length: ${((timesPerStep.reduce((a, b) => a + b, 0) / timesPerStep.length) / 1000).toFixed(2)}`)
     return emptyGroundTiles
 }
 
 function part2(input: string[]): any {
-    const elves: Elf[] = []
+    const start = performance.now()
+    const elves: ElfList = {}
     const checks = [
         [DIRECTIONS.N, DIRECTIONS.NE, DIRECTIONS.NW],
         [DIRECTIONS.S, DIRECTIONS.SE, DIRECTIONS.SW],
@@ -132,63 +129,55 @@ function part2(input: string[]): any {
     ]
     input.forEach((row, y) => {
         row.split('').forEach((col, x) => {
-            if(col == '#') elves.push({x, y})
+            if(col == '#') elves[[x, y].toString()] = {x, y}
         })
     })
-    let lastElves = ''
+    let didElfMove = true
     let rIdx = 0
-    while (lastElves != JSON.stringify(elves)) {
-        lastElves = JSON.stringify(elves)
+    const timesPerStep = []
+    while (didElfMove) {
+        const stepStart = performance.now()
         const proposedMovements: Movement[] = []
-        elves.forEach((elf, idx) => {
-            const neighborPositions = Object.keys(DIRECTIONS).map(d => {
-                return {
-                    x: DIRECTIONS[d].x + elf.x,
-                    y: DIRECTIONS[d].y + elf.y
-                }
-            })
-            const neighborElves = elves.filter(e => {
-                return neighborPositions.filter(p => {
-                    return e.x == p.x && e.y == p.y
-                }).length > 0
-            })
-            if(neighborElves.length > 0) {
-                checks.forEach(c => {
-                    const checkPositions = c.map(d => {
-                        return {
-                            x: d.x + elf.x,
-                            y: d.y + elf.y
+        Object.keys(elves).forEach((elfKey, idx) => {
+            const elf = elves[elfKey]
+            {
+                if(doesElfHaveNeighbors(elves, elf)) {
+                    checks.forEach(c => {
+                        const checkPositions = c.map(d => {
+                            return {
+                                x: d.x + elf.x,
+                                y: d.y + elf.y
+                            }
+                        })
+                        const checkPass = checkPositions.filter(p => {
+                            return elves[[p.x, p.y].toString()] != undefined
+                        }).length == 0
+                        if(checkPass && proposedMovements.findIndex(j => j.elfKey == elfKey) == -1) {
+                            proposedMovements.push(
+                                {
+                                    elfKey,
+                                    newX: c[0].x + elf.x,
+                                    newY: c[0].y + elf.y
+                                }
+                            )
                         }
                     })
-                    const checkElves = elves.filter(e => {
-                        return checkPositions.filter(p => {
-                            return e.x == p.x && e.y == p.y
-                        }).length > 0
-                    })
-                    if(checkElves.length == 0 && proposedMovements.findIndex(j => j.elfIdx == idx) == -1) {
-                        proposedMovements.push(
-                            {
-                                elfIdx: idx,
-                                newX: c[0].x + elf.x,
-                                newY: c[0].y + elf.y
-                            }
-                        )
-                    }
-                })
+                }
             }
         })
         const nonDuplicateMovements = proposedMovements.filter(m => {
             return proposedMovements.filter(o => m.newY == o.newY && m.newX == o.newX).length == 1
         })
         nonDuplicateMovements.forEach(m => {
-            elves[m.elfIdx].x = m.newX
-            elves[m.elfIdx].y = m.newY
+            delete elves[m.elfKey]
+            elves[[m.newX, m.newY].toString()] = { x: m.newX, y: m.newY }
         })
+        didElfMove = nonDuplicateMovements.length > 0
         checks.push(checks.shift())
-        console.log(`== End of Round ${rIdx + 1} ==`)
+        timesPerStep.push(performance.now() - stepStart)
         rIdx++
-        // printBoard(elves)
     }
+    console.log(`Calculation took ${((performance.now() - start) / 1000).toFixed(2)} seconds. Avg step length: ${((timesPerStep.reduce((a, b) => a + b, 0) / timesPerStep.length) / 1000).toFixed(2)}`)
     return rIdx
 }
 
