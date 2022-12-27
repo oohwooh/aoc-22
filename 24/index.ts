@@ -227,7 +227,7 @@ function part2(input: string[]): any {
 
 console.log('Part 1:')
 console.log(`Test: ${part1(test)}`)
-// console.log(`Input: ${part1(input)}`)
+console.log(`Input: ${part1(input)}`)
 
 console.log('Part 2:')
 console.log(`Test: ${part2(test)}`)
